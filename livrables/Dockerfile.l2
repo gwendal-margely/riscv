@@ -1,0 +1,9 @@
+# Dockerfile pour exécuter l'émulateur RISC-V (Livrable 2)
+
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY . /app/
+
+CMD ["python", "main.py", "/data/tests/hello_world.bin", "--livrable", "2"]
