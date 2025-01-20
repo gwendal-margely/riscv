@@ -6,4 +6,4 @@ WORKDIR /app
 
 COPY . /app/
 
-CMD ["python", "main.py", "/data/tests/hello_world.bin", "--livrable", "3"]
+CMD echo "3" > livrable.prop

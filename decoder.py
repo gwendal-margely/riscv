@@ -1,9 +1,9 @@
 # decoder.py
-# Ce fichier contient le décodeur pour interpréter les instructions RV32I
 
 import struct
+import csv
 
-# Les opcodes pour les différents types d'instructions RV32I
+# opcodes pour les différents types d'instructions RV32I
 OPCODES = {
     "LOAD": 0b0000011,
     "STORE": 0b0100011,
@@ -16,6 +16,33 @@ OPCODES = {
     "OP": 0b0110011,
     "SYSTEM": 0b1110011,
 }
+
+def generate_csv(cpu, memory):
+    with open('output.csv', 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow(["offset", "valeur", "opcode", "encoding"])
+        pc = cpu.get_pc()
+        while pc < memory.size:
+            inst = memory.read(pc, 4)
+            opcode = inst & 0x7F
+            encoding = get_encoding(opcode)
+            csvwriter.writerow([f"{pc:08x}", f"{inst:08x}", f"{opcode:08x}", encoding])
+            pc += 4
+
+def get_encoding(opcode):
+    encoding_map = {
+        0b0000011: "I",
+        0b0100011: "S",
+        0b1100011: "S_B",
+        0b1100111: "I",
+        0b1101111: "U_J",
+        0b0110111: "U",
+        0b0010111: "U",
+        0b0010011: "I",
+        0b0110011: "R",
+        0b1110011: "I"
+    }
+    return encoding_map.get(opcode, "Unknown")
 
 # Fonction pour décoder une instruction RV32I
 def decode_instruction(inst, mode=2):
@@ -55,13 +82,6 @@ def decode_instruction(inst, mode=2):
         return decode_system(inst)
     else:
         return "Instruction inconnue"
-
-# Fonctions spécifiques pour chaque type d'instruction
-def decode_load(inst):
-    rd = (inst >> 7) & 0x1F
-    rs1 = (inst >> 15) & 0x1F
-    imm = sign_extend((inst >> 20) & 0xFFF, 12)
-    return f"LOAD x{rd}, {imm}(x{rs1})"
 
 # Fonctions spécifiques pour chaque type d'instruction
 def decode_load(inst):

@@ -173,20 +173,37 @@ def execute_instruction(cpu, memory, inst, peripherals):
                 addr += 1
             print(string, end='', flush=True)
 
+def handle_command(command, cpu, memory):
+    parts = command.split()
+    if parts[0] == "x":
+        count = int(parts[1].split('/')[0])
+        address = int(parts[1].split('/')[1], 16)
+        for i in range(count):
+            value = memory.read(address + i, 1)
+            print(f"{address + i:08x}: {value:02x}")
+    elif parts[0] == "reset":
+        cpu.set_pc(args.reset_addr)
+    elif parts[0] == "continue":
+        return False
+    elif parts[0] == "exit":
+        return True
+    return True
+
 def emu_loop(cpu, memory, peripherals, step_by_step=False):
     while True:
         try:
             inst = memory.read(cpu.get_pc(), 4)
             if step_by_step:
                 print(f"PC: {cpu.get_pc():#x}, Instruction: {decode_instruction(inst, mode=2)}")
-                command = input("Commande (step/continue/exit): ")
+                command = input("Commande (step/continue/exit/x/COUNT ADDRESS/reset): ")
                 if command == "step":
                     execute_instruction(cpu, memory, inst, peripherals)
                     cpu.set_pc(cpu.get_pc() + 4)
-                elif command == "continue":
-                    step_by_step = False
-                elif command == "exit":
-                    break
+                else:
+                    if handle_command(command, cpu, memory):
+                        continue
+                    else:
+                        step_by_step = False
             else:
                 execute_instruction(cpu, memory, inst, peripherals)
                 cpu.set_pc(cpu.get_pc() + 4)
