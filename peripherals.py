@@ -1,3 +1,6 @@
+import sys
+
+
 class Peripherals:
     def __init__(self):
         self.stdout_addr = 0x4000004

@@ -1,3 +1,5 @@
+import argparse
+from ast import arg
 from cpu import RISCV_CPU
 from memory import Memory
 from decoder import decode_instruction, sign_extend
@@ -182,7 +184,7 @@ def handle_command(command, cpu, memory):
             value = memory.read(address + i, 1)
             print(f"{address + i:08x}: {value:02x}")
     elif parts[0] == "reset":
-        cpu.set_pc(args.reset_addr)
+        cpu.set_pc(arg.reset_addr)
     elif parts[0] == "continue":
         return False
     elif parts[0] == "exit":

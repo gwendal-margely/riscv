@@ -1,8 +1,11 @@
 import argparse
+import csv
+
 from emulator import emu_loop, execute_instruction, decode_instruction
 from cpu import RISCV_CPU
 from memory import Memory
 from peripherals import Peripherals
+from decoder import get_encoding
 
 def main():
     default_livrable=read_livrable_prop()
