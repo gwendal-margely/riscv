@@ -1,5 +1,3 @@
-import argparse
-from ast import arg
 from cpu import RISCV_CPU
 from memory import Memory
 from decoder import decode_instruction, sign_extend
@@ -131,7 +129,7 @@ def execute_system(cpu, memory, inst):
         elif imm == 0b000000000001:  # EBREAK
             print("EBREAK détecté")
 
-def execute_instruction(cpu, memory, inst, peripherals):
+def execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting):
     opcode = inst & 0x7F  # Les 7 bits de poids faible
     if opcode == 0b0000011:  # LOAD
         execute_load(cpu, memory, inst)
@@ -158,13 +156,13 @@ def execute_instruction(cpu, memory, inst, peripherals):
 
     # Gérer les accès mémoire aux périphériques
     address = cpu.get_pc()
-    if peripherals.handle_memory_access(address, inst, is_write=True) is not None:
+    if enable_peripherals and peripherals.handle_memory_access(address, inst, is_write=True) is not None:
         return
-    if peripherals.handle_memory_access(address, inst, is_write=False) is not None:
+    if enable_peripherals and peripherals.handle_memory_access(address, inst, is_write=False) is not None:
         return
 
     # Gérer le semihosting
-    if inst == 0x00100073:  # ebreak
+    if enable_semihosting and inst == 0x00100073:  # ebreak
         if cpu.get_reg(10) == 0x04:  # SYS_WRITEC
             peripherals.write_stdout(cpu.get_reg(11))
         elif cpu.get_reg(10) == 0x06:  # SYS_WRITE0
@@ -175,6 +173,29 @@ def execute_instruction(cpu, memory, inst, peripherals):
                 addr += 1
             print(string, end='', flush=True)
 
+def emu_loop(cpu, memory, peripherals, step_by_step=False, enable_peripherals=True, enable_semihosting=True):
+    while True:
+        try:
+            inst = memory.read(cpu.get_pc(), 4)
+            if step_by_step:
+                print(f"PC: {cpu.get_pc():#x}, Instruction: {decode_instruction(inst, mode=2)}")
+                command = input("Commande (step/continue/exit/x/COUNT ADDRESS/reset): ")
+                if command == "step":
+                    execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting)
+                    cpu.set_pc(cpu.get_pc() + 4)
+                elif command == "continue":
+                    step_by_step = False
+                elif command == "exit":
+                    break
+                else:
+                    handle_command(command, cpu, memory)
+            else:
+                execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting)
+                cpu.set_pc(cpu.get_pc() + 4)
+        except MemoryError as e:
+            print(f"Erreur : {e}")
+            step_by_step = True
+
 def handle_command(command, cpu, memory):
     parts = command.split()
     if parts[0] == "x":
@@ -184,51 +205,9 @@ def handle_command(command, cpu, memory):
             value = memory.read(address + i, 1)
             print(f"{address + i:08x}: {value:02x}")
     elif parts[0] == "reset":
-        cpu.set_pc(arg.reset_addr)
+        cpu.set_pc(0x100)  # Reset address
     elif parts[0] == "continue":
         return False
     elif parts[0] == "exit":
         return True
     return True
-
-def emu_loop(cpu, memory, peripherals, step_by_step=False):
-    while True:
-        try:
-            inst = memory.read(cpu.get_pc(), 4)
-            if step_by_step:
-                print(f"PC: {cpu.get_pc():#x}, Instruction: {decode_instruction(inst, mode=2)}")
-                command = input("Commande (step/continue/exit/x/COUNT ADDRESS/reset): ")
-                if command == "step":
-                    execute_instruction(cpu, memory, inst, peripherals)
-                    cpu.set_pc(cpu.get_pc() + 4)
-                else:
-                    if handle_command(command, cpu, memory):
-                        continue
-                    else:
-                        step_by_step = False
-            else:
-                execute_instruction(cpu, memory, inst, peripherals)
-                cpu.set_pc(cpu.get_pc() + 4)
-        except MemoryError as e:
-            print(f"Erreur : {e}")
-            step_by_step = True
-
-def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="Emulateur RISC-V")
-    parser.add_argument("binary_file", type=str, help="Fichier binaire contenant les instructions RISC-V")
-    parser.add_argument("--reset-addr", type=lambda x: int(x,0), default=0x100, help="Adresse de reset (défaut : 0x100)")
-    parser.add_argument("--mem-size", type=lambda x: int(x,0), default=512*1024, help="Taille de la mémoire en octets (défaut : 512KB)")
-    parser.add_argument("--step", action="store_true", help="Activer le mode pas à pas")
-    args = parser.parse_args()
-
-    cpu = RISCV_CPU()
-    memory = Memory(args.mem_size)
-    peripherals = Peripherals()
-    memory.load_program(args.binary_file)
-    cpu.set_pc(args.reset_addr)
-
-    emu_loop(cpu, memory, peripherals, step_by_step=args.step)
-
-if __name__ == "__main__":
-    main()
