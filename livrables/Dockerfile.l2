@@ -1,9 +1,15 @@
 # Dockerfile pour exécuter l'émulateur RISC-V (Livrable 2)
+FROM python:3.9-slim
 
-FROM python:3.10-slim
+RUN apt-get update && apt-get install -y python3-pip
 
+COPY . /app
 WORKDIR /app
 
-COPY . /app/
+RUN pip install -r requirements.txt
 
-CMD echo "2" > livrable.prop
+ARG BINARY_FILE
+
+RUN echo "2" > livrable.prop
+
+CMD ["python", "main.py", "${BINARY_FILE}", "--livrable", "2", "--step"]

@@ -29,7 +29,9 @@ def execute_branch(cpu, memory, inst):
     imm_11 = (inst >> 7) & 0x1
     rs1 = (inst >> 15) & 0x1F
     rs2 = (inst >> 20) & 0x1F
-    imm = sign_extend((imm_12 << 12) | (imm_11 << 11) | (imm_10_5 << 5) | (imm_4_1 << 1), 13)
+    imm = (imm_12 << 12) | (imm_11 << 11) | (imm_10_5 << 5) | (imm_4_1 << 1)
+    if imm & 0x800:
+        imm |= 0xFFFFF000
     if cpu.get_reg(rs1) == cpu.get_reg(rs2):
         cpu.set_pc(cpu.get_pc() + imm)
     else:
@@ -38,10 +40,10 @@ def execute_branch(cpu, memory, inst):
 def execute_jalr(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
     rs1 = (inst >> 15) & 0x1F
-    imm = sign_extend((inst >> 20) & 0xFFF, 12)
+    imm = (inst >> 20) & 0xFFF
     next_pc = cpu.get_pc() + 4
     cpu.set_reg(rd, next_pc)
-    cpu.set_pc(cpu.get_reg(rs1) + imm)
+    cpu.set_pc((cpu.get_reg(rs1) + imm) & 0xFFFFFFFE)
 
 def execute_jal(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
@@ -49,10 +51,12 @@ def execute_jal(cpu, memory, inst):
     imm_10_1 = (inst >> 21) & 0x3FF
     imm_11 = (inst >> 20) & 0x1
     imm_19_12 = (inst >> 12) & 0xFF
-    imm = sign_extend((imm_20 << 20) | (imm_19_12 << 12) | (imm_11 << 11) | (imm_10_1 << 1), 21)
+    imm = (imm_20 << 20) | (imm_19_12 << 12) | (imm_11 << 11) | (imm_10_1 << 1)
+    if imm & 0x100000:
+        imm |= 0xFFF00000
     next_pc = cpu.get_pc() + 4
     cpu.set_reg(rd, next_pc)
-    cpu.set_pc(cpu.get_pc() + imm)
+    cpu.set_pc((cpu.get_pc() + imm) & 0xFFFFFFFE)
 
 def execute_lui(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
@@ -67,7 +71,7 @@ def execute_auipc(cpu, memory, inst):
 def execute_op_imm(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
     rs1 = (inst >> 15) & 0x1F
-    imm = sign_extend((inst >> 20) & 0xFFF, 12)
+    imm = (inst >> 20) & 0x1F
     funct3 = (inst >> 12) & 0x7
     if funct3 == 0b000:  # ADDI
         cpu.set_reg(rd, cpu.get_reg(rs1) + imm)
@@ -128,6 +132,14 @@ def execute_system(cpu, memory, inst):
             pass  # Rien à faire pour ECALL
         elif imm == 0b000000000001:  # EBREAK
             print("EBREAK détecté")
+            # Terminer l'exécution
+            exit(0)
+    else:
+        print(f"Instruction SYSTEM inconnue: {inst:08x}")
+
+def execute_nop(cpu, memory, inst):
+    # NOP instruction (no-op)
+    pass
 
 def execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting):
     opcode = inst & 0x7F  # Les 7 bits de poids faible
@@ -151,8 +163,10 @@ def execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enab
         execute_op(cpu, memory, inst)
     elif opcode == 0b1110011:  # SYSTEM
         execute_system(cpu, memory, inst)
+    elif opcode == 0b0000001:  # NOP
+        execute_nop(cpu, memory, inst)
     else:
-        print("Instruction inconnue")
+        print(f"Instruction inconnue: {inst:08x}")
 
     # Gérer les accès mémoire aux périphériques
     address = cpu.get_pc()

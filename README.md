@@ -167,27 +167,27 @@ python main.py <binary-file-path>
 ### Livrable 1 : Decodeur
 
 ``` bash
-docker build -t decoder -f livrables/Dockerfile.l1 .
+docker build --build-arg BINARY_FILE=<binary-file.bin> -t decoder -f livrables/Dockerfile.l1 .
 docker run --rm -v $(pwd):/data decoder
 ```
 
 ### Livrable 2 : Désassembleur
 
 ``` bash
-docker build -t disassembler -f livrables/Dockerfile.l2 .
+docker build --build-arg BINARY_FILE=<binary-file.bin> -t disassembler -f livrables/Dockerfile.l2 .
 docker run --rm -v $(pwd):/data disassembler
 ```
 
 ### Livrable 3 : Emulateur (sans Entrée/Sortie)
 
 ``` bash
-docker build -t riscv-emulator-l3 -f livrables/Dockerfile.l3 .
+docker build --build-arg BINARY_FILE=<binary-file.bin> -t riscv-emulator-l3 -f livrables/Dockerfile.l3 .
 docker run --rm -v $(pwd):/data riscv-emulator-l3
 ```
 
 ### Livrable 4 : Emulateur (avec Entrée/Sortie)
 
 ``` bash
-docker build -t riscv-emulator-l4 -f livrables/Dockerfile.l4 .
+docker build --build-arg BINARY_FILE=<binary-file.bin> -t riscv-emulator-l4 -f livrables/Dockerfile.l4 .
 docker run --rm -v $(pwd):/data riscv-emulator-l4
 ```
