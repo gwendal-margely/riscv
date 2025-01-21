@@ -1,3 +1,6 @@
+## Gwendal Margely
+## Grégoire Launay-Bécue
+
 # Emulateur RISC-V
 
 ## Description du Projet
@@ -129,8 +132,17 @@ Cela exécutera les instructions, affichant les registres et le compteur de prog
 ## Options :
 
 ``` bash
-python main.py <binary-file-path> [--livrable <numero-livrable>] [--mem-size <mem-size-in-bytes>] [--reset-addr <addr>] [--step]
+python main.py <binary-file-path>
+[--livrable <numero-livrable>]
+[--reset-addr <addr>]
+[--mem-size <mem-size-in-bytes>]
+[--step]
+[--ooo]
 ```
+
+### --livrable
+
+* Numéro du livrable à tester *[1 à 4]*
 
 ### --reset-addr
 
@@ -140,13 +152,13 @@ python main.py <binary-file-path> [--livrable <numero-livrable>] [--mem-size <me
 
 * Taille de la mémoire en octets *(défaut : 512KB)*
 
-### --livrable
-
-* Numéro du livrable à tester *[1 à 4]*
-
 ### --step
 
 * mode pas-à-pas *(défaut : false)*
+
+### --ooo
+
+* mode Out-Of-Order avec Optimisation de l'ordre des instructions. *(défaut : false)*
 
 ---
 

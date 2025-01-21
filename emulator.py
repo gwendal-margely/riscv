@@ -174,6 +174,7 @@ def execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enab
             print(string, end='', flush=True)
 
 def emu_loop(cpu, memory, peripherals, step_by_step=False, enable_peripherals=True, enable_semihosting=True):
+    result_stack = []
     while True:
         try:
             inst = memory.read(cpu.get_pc(), 4)
@@ -181,7 +182,8 @@ def emu_loop(cpu, memory, peripherals, step_by_step=False, enable_peripherals=Tr
                 print(f"PC: {cpu.get_pc():#x}, Instruction: {decode_instruction(inst, mode=2)}")
                 command = input("Commande (step/continue/exit/x/COUNT ADDRESS/reset): ")
                 if command == "step":
-                    execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting)
+                    result = execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting)
+                    result_stack.append(result)
                     cpu.set_pc(cpu.get_pc() + 4)
                 elif command == "continue":
                     step_by_step = False
@@ -190,11 +192,13 @@ def emu_loop(cpu, memory, peripherals, step_by_step=False, enable_peripherals=Tr
                 else:
                     handle_command(command, cpu, memory)
             else:
-                execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting)
+                result = execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting)
+                result_stack.append(result)
                 cpu.set_pc(cpu.get_pc() + 4)
         except MemoryError as e:
             print(f"Erreur : {e}")
             step_by_step = True
+    return result_stack
 
 def handle_command(command, cpu, memory):
     parts = command.split()
