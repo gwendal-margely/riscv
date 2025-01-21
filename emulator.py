@@ -11,6 +11,7 @@ def execute_load(cpu, memory, inst):
     addr = cpu.get_reg(rs1) + imm
     value = memory.read(addr, 4)  # Lecture de 4 octets (32 bits)
     cpu.set_reg(rd, value)
+    return value
 
 def execute_store(cpu, memory, inst):
     imm_11_5 = (inst >> 25) & 0x7F
@@ -21,6 +22,7 @@ def execute_store(cpu, memory, inst):
     addr = cpu.get_reg(rs1) + imm
     value = cpu.get_reg(rs2)
     memory.write(addr, value, 4)  # Écriture de 4 octets (32 bits)
+    return value
 
 def execute_branch(cpu, memory, inst):
     imm_12 = (inst >> 31) & 0x1
@@ -36,6 +38,7 @@ def execute_branch(cpu, memory, inst):
         cpu.set_pc(cpu.get_pc() + imm)
     else:
         cpu.set_pc(cpu.get_pc() + 4)
+    return imm
 
 def execute_jalr(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
@@ -44,6 +47,7 @@ def execute_jalr(cpu, memory, inst):
     next_pc = cpu.get_pc() + 4
     cpu.set_reg(rd, next_pc)
     cpu.set_pc((cpu.get_reg(rs1) + imm) & 0xFFFFFFFE)
+    return next_pc
 
 def execute_jal(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
@@ -57,16 +61,19 @@ def execute_jal(cpu, memory, inst):
     next_pc = cpu.get_pc() + 4
     cpu.set_reg(rd, next_pc)
     cpu.set_pc((cpu.get_pc() + imm) & 0xFFFFFFFE)
+    return next_pc
 
 def execute_lui(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
     imm = (inst >> 12) & 0xFFFFF
     cpu.set_reg(rd, imm << 12)
+    return imm << 12
 
 def execute_auipc(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
     imm = (inst >> 12) & 0xFFFFF
     cpu.set_reg(rd, cpu.get_pc() + imm)
+    return cpu.get_pc() + imm
 
 def execute_op_imm(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
@@ -74,25 +81,35 @@ def execute_op_imm(cpu, memory, inst):
     imm = (inst >> 20) & 0x1F
     funct3 = (inst >> 12) & 0x7
     if funct3 == 0b000:  # ADDI
-        cpu.set_reg(rd, cpu.get_reg(rs1) + imm)
+        result = cpu.get_reg(rs1) + imm
+        cpu.set_reg(rd, result)
     elif funct3 == 0b010:  # SLTI
-        cpu.set_reg(rd, 1 if cpu.get_reg(rs1) < imm else 0)
+        result = 1 if cpu.get_reg(rs1) < imm else 0
+        cpu.set_reg(rd, result)
     elif funct3 == 0b011:  # SLTIU
-        cpu.set_reg(rd, 1 if cpu.get_reg(rs1) < imm else 0)
+        result = 1 if cpu.get_reg(rs1) < imm else 0
+        cpu.set_reg(rd, result)
     elif funct3 == 0b100:  # XORI
-        cpu.set_reg(rd, cpu.get_reg(rs1) ^ imm)
+        result = cpu.get_reg(rs1) ^ imm
+        cpu.set_reg(rd, result)
     elif funct3 == 0b110:  # ORI
-        cpu.set_reg(rd, cpu.get_reg(rs1) | imm)
+        result = cpu.get_reg(rs1) | imm
+        cpu.set_reg(rd, result)
     elif funct3 == 0b111:  # ANDI
-        cpu.set_reg(rd, cpu.get_reg(rs1) & imm)
+        result = cpu.get_reg(rs1) & imm
+        cpu.set_reg(rd, result)
     elif funct3 == 0b001:  # SLLI
-        cpu.set_reg(rd, cpu.get_reg(rs1) << imm)
+        result = cpu.get_reg(rs1) << imm
+        cpu.set_reg(rd, result)
     elif funct3 == 0b101:  # SRLI/SRAI
         funct7 = (inst >> 25) & 0x7F
         if funct7 == 0b0000000:  # SRLI
-            cpu.set_reg(rd, cpu.get_reg(rs1) >> imm)
+            result = cpu.get_reg(rs1) >> imm
+            cpu.set_reg(rd, result)
         elif funct7 == 0b0100000:  # SRAI
-            cpu.set_reg(rd, (cpu.get_reg(rs1) >> imm) | ((cpu.get_reg(rs1) & (1 << (32 - imm))) >> (32 - imm)))
+            result = (cpu.get_reg(rs1) >> imm) | ((cpu.get_reg(rs1) & (1 << (32 - imm))) >> (32 - imm))
+            cpu.set_reg(rd, result)
+    return result
 
 def execute_op(cpu, memory, inst):
     rd = (inst >> 7) & 0x1F
@@ -102,27 +119,38 @@ def execute_op(cpu, memory, inst):
     if funct3 == 0b000:  # ADD/SUB
         funct7 = (inst >> 25) & 0x7F
         if funct7 == 0b0000000:  # ADD
-            cpu.set_reg(rd, cpu.get_reg(rs1) + cpu.get_reg(rs2))
+            result = cpu.get_reg(rs1) + cpu.get_reg(rs2)
+            cpu.set_reg(rd, result)
         elif funct7 == 0b0100000:  # SUB
-            cpu.set_reg(rd, cpu.get_reg(rs1) - cpu.get_reg(rs2))
+            result = cpu.get_reg(rs1) - cpu.get_reg(rs2)
+            cpu.set_reg(rd, result)
     elif funct3 == 0b001:  # SLL
-        cpu.set_reg(rd, cpu.get_reg(rs1) << cpu.get_reg(rs2))
+        result = cpu.get_reg(rs1) << cpu.get_reg(rs2)
+        cpu.set_reg(rd, result)
     elif funct3 == 0b010:  # SLT
-        cpu.set_reg(rd, 1 if cpu.get_reg(rs1) < cpu.get_reg(rs2) else 0)
+        result = 1 if cpu.get_reg(rs1) < cpu.get_reg(rs2) else 0
+        cpu.set_reg(rd, result)
     elif funct3 == 0b011:  # SLTU
-        cpu.set_reg(rd, 1 if cpu.get_reg(rs1) < cpu.get_reg(rs2) else 0)
+        result = 1 if cpu.get_reg(rs1) < cpu.get_reg(rs2) else 0
+        cpu.set_reg(rd, result)
     elif funct3 == 0b100:  # XOR
-        cpu.set_reg(rd, cpu.get_reg(rs1) ^ cpu.get_reg(rs2))
+        result = cpu.get_reg(rs1) ^ cpu.get_reg(rs2)
+        cpu.set_reg(rd, result)
     elif funct3 == 0b101:  # SRL/SRA
         funct7 = (inst >> 25) & 0x7F
         if funct7 == 0b0000000:  # SRL
-            cpu.set_reg(rd, cpu.get_reg(rs1) >> cpu.get_reg(rs2))
+            result = cpu.get_reg(rs1) >> cpu.get_reg(rs2)
+            cpu.set_reg(rd, result)
         elif funct7 == 0b0100000:  # SRA
-            cpu.set_reg(rd, (cpu.get_reg(rs1) >> cpu.get_reg(rs2)) | ((cpu.get_reg(rs1) & (1 << (32 - cpu.get_reg(rs2)))) >> (32 - cpu.get_reg(rs2))))
+            result = (cpu.get_reg(rs1) >> cpu.get_reg(rs2)) | ((cpu.get_reg(rs1) & (1 << (32 - cpu.get_reg(rs2)))) >> (32 - cpu.get_reg(rs2)))
+            cpu.set_reg(rd, result)
     elif funct3 == 0b110:  # OR
-        cpu.set_reg(rd, cpu.get_reg(rs1) | cpu.get_reg(rs2))
+        result = cpu.get_reg(rs1) | cpu.get_reg(rs2)
+        cpu.set_reg(rd, result)
     elif funct3 == 0b111:  # AND
-        cpu.set_reg(rd, cpu.get_reg(rs1) & cpu.get_reg(rs2))
+        result = cpu.get_reg(rs1) & cpu.get_reg(rs2)
+        cpu.set_reg(rd, result)
+    return result
 
 def execute_system(cpu, memory, inst):
     funct3 = (inst >> 12) & 0x7
@@ -132,41 +160,44 @@ def execute_system(cpu, memory, inst):
             pass  # Rien à faire pour ECALL
         elif imm == 0b000000000001:  # EBREAK
             print("EBREAK détecté")
-            # Terminer l'exécution
-            exit(0)
+            return "EBREAK"
     else:
         print(f"Instruction SYSTEM inconnue: {inst:08x}")
+    return None
 
 def execute_nop(cpu, memory, inst):
     # NOP instruction (no-op)
-    pass
+    return None
 
 def execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting):
     opcode = inst & 0x7F  # Les 7 bits de poids faible
     if opcode == 0b0000011:  # LOAD
-        execute_load(cpu, memory, inst)
+        return execute_load(cpu, memory, inst)
     elif opcode == 0b0100011:  # STORE
-        execute_store(cpu, memory, inst)
+        return execute_store(cpu, memory, inst)
     elif opcode == 0b1100011:  # BRANCH
-        execute_branch(cpu, memory, inst)
+        return execute_branch(cpu, memory, inst)
     elif opcode == 0b1100111:  # JALR
-        execute_jalr(cpu, memory, inst)
+        return execute_jalr(cpu, memory, inst)
     elif opcode == 0b1101111:  # JAL
-        execute_jal(cpu, memory, inst)
+        return execute_jal(cpu, memory, inst)
     elif opcode == 0b0110111:  # LUI
-        execute_lui(cpu, memory, inst)
+        return execute_lui(cpu, memory, inst)
     elif opcode == 0b0010111:  # AUIPC
-        execute_auipc(cpu, memory, inst)
+        return execute_auipc(cpu, memory, inst)
     elif opcode == 0b0010011:  # OP_IMM
-        execute_op_imm(cpu, memory, inst)
+        return execute_op_imm(cpu, memory, inst)
     elif opcode == 0b0110011:  # OP
-        execute_op(cpu, memory, inst)
+        return execute_op(cpu, memory, inst)
     elif opcode == 0b1110011:  # SYSTEM
-        execute_system(cpu, memory, inst)
+        result = execute_system(cpu, memory, inst)
+        if result == "EBREAK":
+            return result
     elif opcode == 0b0000001:  # NOP
-        execute_nop(cpu, memory, inst)
+        return execute_nop(cpu, memory, inst)
     else:
         print(f"Instruction inconnue: {inst:08x}")
+        return None
 
     # Gérer les accès mémoire aux périphériques
     address = cpu.get_pc()
@@ -197,6 +228,8 @@ def emu_loop(cpu, memory, peripherals, step_by_step=False, enable_peripherals=Tr
                 command = input("Commande (step/continue/exit/x/COUNT ADDRESS/reset): ")
                 if command == "step":
                     result = execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting)
+                    if result == "EBREAK":
+                        return result_stack
                     result_stack.append(result)
                     cpu.set_pc(cpu.get_pc() + 4)
                 elif command == "continue":
@@ -207,6 +240,8 @@ def emu_loop(cpu, memory, peripherals, step_by_step=False, enable_peripherals=Tr
                     handle_command(command, cpu, memory)
             else:
                 result = execute_instruction(cpu, memory, inst, peripherals, enable_peripherals, enable_semihosting)
+                if result == "EBREAK":
+                    return result_stack
                 result_stack.append(result)
                 cpu.set_pc(cpu.get_pc() + 4)
         except MemoryError as e:

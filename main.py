@@ -16,7 +16,7 @@ def read_livrable_prop():
             else:
                 raise ValueError("Invalid value in livrable.prop")
     except (FileNotFoundError, ValueError):
-        return 4  # Default value if file is not found or contains invalid value
+        return 4  # Default value if invalid value
 
 def main():
     default_livrable = read_livrable_prop()
@@ -85,8 +85,9 @@ def livrable_2(binary_file):
 
 # sortie d'affichage
 def print_results(result_stack):
+    print("---RESULT-STACK---")
     for result in result_stack:
-        print(f"Result: {result}")
+        print(f": {result}")
 
 if __name__ == "__main__":
     main()
